@@ -6,6 +6,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"os"
 
 	"github.com/gorilla/mux"
 	"github.com/minio/minio-go/v7"
@@ -14,16 +15,34 @@ import (
 
 var minioClient *minio.Client
 
-const (
-	bucketName = "upload-bucket"
-	endpoint   = "192.168.2.100:8000" // MinIO 服务器地址
-	accessKey  = "admin"
-	secretKey  = "12345678"
-)
+const bucketName = "upload-bucket"
 
 func main() {
+	initMinio()
+
+	router := mux.NewRouter()
+	router.HandleFunc("/upload", uploadFile).Methods("POST")
+	router.HandleFunc("/files", listFiles).Methods("GET")
+	router.HandleFunc("/download/{filename}", downloadFile).Methods("GET")
+	router.HandleFunc("/delete/{bucket}/{object}", deleteFileHandler).Methods("DELETE")
+
+	// 静态文件服务
+	router.PathPrefix("/").Handler(http.FileServer(http.Dir("./static/")))
+
+	port := os.Getenv("MINIO_BRIDGE_PORT")
+	if port == "" {
+		port = "9102" // 默认端口
+	}
+	log.Fatal(http.ListenAndServe(":"+port, router))
+}
+
+func initMinio() {
 	// 初始化 MinIO 客户端
 	var err error
+	endpoint := os.Getenv("MINIO_ENDPOINT")
+	accessKey := os.Getenv("MINIO_ACCESS_KEY")
+	secretKey := os.Getenv("MINIO_SECRET_KEY")
+
 	minioClient, err = minio.New(endpoint, &minio.Options{
 		Creds:  credentials.NewStaticV4(accessKey, secretKey, ""),
 		Secure: false,
@@ -43,17 +62,6 @@ func main() {
 			log.Fatalln(err)
 		}
 	}
-
-	router := mux.NewRouter()
-	router.HandleFunc("/upload", uploadFile).Methods("POST")
-	router.HandleFunc("/files", listFiles).Methods("GET")
-	router.HandleFunc("/download/{filename}", downloadFile).Methods("GET")
-	router.HandleFunc("/delete/{bucket}/{object}", deleteFileHandler).Methods("DELETE")
-
-	// 静态文件服务
-	router.PathPrefix("/").Handler(http.FileServer(http.Dir("./static/")))
-
-	http.ListenAndServe(":8080", router)
 }
 
 func uploadFile(w http.ResponseWriter, r *http.Request) {
@@ -106,6 +114,5 @@ func deleteFileHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-
 	w.WriteHeader(http.StatusNoContent)
 }

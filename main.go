@@ -24,10 +24,10 @@ func main() {
 	router.HandleFunc("/upload", uploadFile).Methods("POST")
 	router.HandleFunc("/files", listFiles).Methods("GET")
 	router.HandleFunc("/download/{filename}", downloadFile).Methods("GET")
-	router.HandleFunc("/delete/{bucket}/{object}", deleteFileHandler).Methods("DELETE")
+	router.HandleFunc("/delete/{object}", deleteFileHandler).Methods("DELETE")
 
 	// 静态文件服务
-	router.PathPrefix("/").Handler(http.FileServer(http.Dir("./static/")))
+	router.PathPrefix("/").Handler(http.FileServer(http.Dir("/static")))
 
 	port := os.Getenv("MINIO_BRIDGE_PORT")
 	if port == "" {
@@ -42,6 +42,10 @@ func initMinio() {
 	endpoint := os.Getenv("MINIO_ENDPOINT")
 	accessKey := os.Getenv("MINIO_ACCESS_KEY")
 	secretKey := os.Getenv("MINIO_SECRET_KEY")
+
+	// endpoint := "192.168.2.100:9100"
+	// accessKey := "admin"
+	// secretKey := "12345678"
 
 	minioClient, err = minio.New(endpoint, &minio.Options{
 		Creds:  credentials.NewStaticV4(accessKey, secretKey, ""),
@@ -106,7 +110,7 @@ func downloadFile(w http.ResponseWriter, r *http.Request) {
 
 func deleteFileHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	bucketName := vars["bucket"]
+	bucketName := bucketName
 	objectName := vars["object"]
 
 	err := minioClient.RemoveObject(context.Background(), bucketName, objectName, minio.RemoveObjectOptions{})

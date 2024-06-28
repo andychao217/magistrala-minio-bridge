@@ -41,8 +41,8 @@ docker_dev:
 	$(call make_docker_dev)
 
 define docker_push
-	docker push $(MG_DOCKER_IMAGE_USERNAME_PREFIX)/$(MG_DOCKER_IMAGE_NAME_PREFIX)-$(SVC):$(1)
 	docker push ${MG_DOCKER_IMAGE_ALIYUN_PREFIX}/$(MG_DOCKER_IMAGE_USERNAME_PREFIX)/$(MG_DOCKER_IMAGE_NAME_PREFIX)-$(SVC):$(1)
+	docker push $(MG_DOCKER_IMAGE_USERNAME_PREFIX)/$(MG_DOCKER_IMAGE_NAME_PREFIX)-$(SVC):$(1)
 endef
 
 latest: docker

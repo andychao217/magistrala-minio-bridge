@@ -112,6 +112,19 @@ func uploadFileHandler(w http.ResponseWriter, r *http.Request) {
 			filePath = filePaths[i]
 		}
 
+		// 检查文件是否已存在
+		_, err = minioClient.StatObject(context.Background(), bucketName, filePath+fileHeader.Filename, minio.StatObjectOptions{})
+		if err == nil {
+			// 文件已存在，跳过上传
+			log.Printf("File %s already exists, skipping upload", filePath+fileHeader.Filename)
+			continue
+		} else if err.(minio.ErrorResponse).Code != "NoSuchKey" {
+			// 其他错误，返回错误信息
+			http.Error(w, "Error checking file existence", http.StatusInternalServerError)
+			return
+		}
+
+		// 文件不存在，上传文件
 		_, err = minioClient.PutObject(context.Background(), bucketName, filePath+fileHeader.Filename, file, fileHeader.Size, minio.PutObjectOptions{ContentType: fileHeader.Header.Get("Content-Type")})
 		if err != nil {
 			http.Error(w, "Error uploading file", http.StatusInternalServerError)

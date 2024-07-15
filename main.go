@@ -17,9 +17,10 @@ import (
 	"github.com/minio/minio-go/v7/pkg/credentials"
 )
 
-var minioClient *minio.Client
-var bucketName string
+var minioClient *minio.Client // MinIO 客户端
+var bucketName string         // 存储桶名称
 
+// 初始化 MinIO 客户端
 func initMinio() {
 	// 初始化 MinIO 客户端
 	var err error
@@ -61,6 +62,7 @@ func initMinio() {
 	}
 }
 
+// 验证文件是否是有效的文件类型
 func isValidFileType(filename string) bool {
 	validExtensions := []string{".mp3", ".wav"}
 	ext := strings.ToLower(filepath.Ext(filename))
@@ -72,6 +74,7 @@ func isValidFileType(filename string) bool {
 	return false
 }
 
+// 上传文件
 func uploadFileHandler(w http.ResponseWriter, r *http.Request) {
 	// 设置 CORS 头
 	w.Header().Set("Access-Control-Allow-Origin", "*") // 允许所有来源，或者指定具体的来源
@@ -135,6 +138,7 @@ func uploadFileHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Files uploaded successfully\n")
 }
 
+// 下载文件
 func downloadFileHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Origin", "*") // 允许所有来源，或者指定具体的来源
 	w.Header().Set("Access-Control-Allow-Methods", "POST")
@@ -167,6 +171,7 @@ func downloadFileHandler(w http.ResponseWriter, r *http.Request) {
 	io.Copy(w, object)
 }
 
+// 删除文件
 func deleteFileHandler(w http.ResponseWriter, r *http.Request) {
 	// 设置 CORS 头
 	w.Header().Set("Access-Control-Allow-Origin", "*") // 允许所有来源，或者指定具体的来源
@@ -203,14 +208,16 @@ func deleteFileHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
+// 定义文件信息结构体
 type ObjectInfo struct {
-	FileName     string  `json:"fileName"`
-	Key          string  `json:"key"`
-	IsDir        bool    `json:"isDir"`
-	Size         float64 `json:"size"`
-	LastModified string  `json:"lastModified"`
+	FileName     string  `json:"fileName"`     // 文件名
+	Key          string  `json:"key"`          // 文件路径
+	IsDir        bool    `json:"isDir"`        // 是否为目录
+	Size         float64 `json:"size"`         // 文件大小，单位为 MB
+	LastModified string  `json:"lastModified"` // 上次修改时间
 }
 
+// 生成文件资源列表
 func buildResourceList(client *minio.Client, bucket, prefix string) []ObjectInfo {
 	opts := minio.ListObjectsOptions{
 		Recursive: false,
@@ -265,7 +272,7 @@ func buildResourceList(client *minio.Client, bucket, prefix string) []ObjectInfo
 	return items
 }
 
-// 获取文件资源树
+// 获取文件资源列表
 func getResourceListHanlder(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Origin", "*") // 允许所有来源，或者指定具体的来源
 	w.Header().Set("Access-Control-Allow-Methods", "POST")
@@ -389,10 +396,11 @@ func createFolderHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	initMinio()
+	initMinio() // 初始化MinIO
 
-	router := mux.NewRouter()
+	router := mux.NewRouter() // 创建路由
 
+	// 路由
 	router.HandleFunc("/upload", uploadFileHandler)
 	router.HandleFunc("/download", downloadFileHandler)
 	router.HandleFunc("/delete", deleteFileHandler)
@@ -401,7 +409,7 @@ func main() {
 	router.HandleFunc("/createFolder", createFolderHandler)
 
 	// 静态文件服务
-	router.PathPrefix("/").Handler(http.FileServer(http.Dir("/static")))
+	// router.PathPrefix("/").Handler(http.FileServer(http.Dir("/static")))
 
 	port := os.Getenv("MINIO_BRIDGE_PORT")
 	if port == "" {

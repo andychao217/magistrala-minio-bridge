@@ -171,6 +171,39 @@ func downloadFileHandler(w http.ResponseWriter, r *http.Request) {
 	io.Copy(w, object)
 }
 
+// DeleteDirectory 递归删除指定路径下的所有对象
+func DeleteDirectory(ctx context.Context, bucketName, prefix string) error {
+	// 列出指定前缀下的所有对象
+	objectsCh := make(chan minio.ObjectInfo)
+
+	go func() {
+		defer close(objectsCh)
+		// 列出所有对象
+		opts := minio.ListObjectsOptions{
+			Prefix:    prefix,
+			Recursive: true,
+		}
+		for object := range minioClient.ListObjects(ctx, bucketName, opts) {
+			if object.Err != nil {
+				log.Println("Error listing objects:", object.Err)
+				return
+			}
+			objectsCh <- object
+		}
+	}()
+
+	// 删除所有对象
+	for object := range objectsCh {
+		err := minioClient.RemoveObject(ctx, bucketName, object.Key, minio.RemoveObjectOptions{})
+		if err != nil {
+			return fmt.Errorf("failed to remove object %s: %w", object.Key, err)
+		}
+		log.Printf("Deleted object: %s\n", object.Key)
+	}
+
+	return nil
+}
+
 // 删除文件
 func deleteFileHandler(w http.ResponseWriter, r *http.Request) {
 	// 设置 CORS 头
@@ -198,7 +231,7 @@ func deleteFileHandler(w http.ResponseWriter, r *http.Request) {
 
 	// 批量删除对象
 	for _, objectName := range requestBody.KeyList {
-		err := minioClient.RemoveObject(context.Background(), bucketName, objectName, minio.RemoveObjectOptions{})
+		err := DeleteDirectory(context.Background(), bucketName, objectName)
 		if err != nil {
 			http.Error(w, fmt.Sprintf("Failed to delete object %s: %s", objectName, err.Error()), http.StatusInternalServerError)
 			return

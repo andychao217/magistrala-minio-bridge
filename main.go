@@ -112,7 +112,7 @@ func uploadFileHandler(w http.ResponseWriter, r *http.Request) {
 		// 使用传递的路径或默认路径
 		filePath := "uploads/"
 		if len(filePaths) > i {
-			filePath = filePaths[i]
+			filePath = strings.TrimSuffix(filePaths[i], "/") + "/"
 		}
 
 		// 检查文件是否已存在

@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/gabriel-vasile/mimetype"
 	"github.com/gorilla/mux"
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
@@ -354,6 +355,31 @@ func getResourceListHanlder(w http.ResponseWriter, r *http.Request) {
 	w.Write(jsonTree)
 }
 
+// 判断文件是否应该在浏览器中显示
+func shouldInline(contentType string) bool {
+	// 你可以根据需要添加更多的MIME类型
+	inlineTypes := []string{
+		"text/plain",
+		"text/html",
+		"text/css",
+		"application/javascript",
+		"image/jpeg",
+		"image/png",
+		"image/gif",
+		"application/pdf",
+		"audio/mpeg",
+		"audio/wav", // 添加 audio/wav 支持
+		"video/mp4",
+	}
+
+	for _, t := range inlineTypes {
+		if contentType == t {
+			return true
+		}
+	}
+	return false
+}
+
 // 预览音频文件
 func previewFileHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Origin", "*") // 允许所有来源，或者指定具体的来源
@@ -379,6 +405,33 @@ func previewFileHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	defer obj.Close()
 
+	// 读取部分文件数据用于 MIME 类型检测
+	buffer := make([]byte, 512) // 512 bytes is generally enough to detect the MIME type
+	n, err := obj.Read(buffer)
+	if err != nil && err != io.EOF {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// 检测文件的 MIME 类型
+	mime := mimetype.Detect(buffer[:n])
+	contentType := mime.String()
+
+	// 将文件指针重置到开头
+	obj.Seek(0, io.SeekStart)
+
+	// 设置Content-Type头
+	w.Header().Set("Content-Type", "audio/mpeg")
+
+	// 设置Content-Disposition头，如果需要让文件在浏览器中显示则设置为inline，否则为attachment
+	if shouldInline(contentType) {
+		w.Header().Set("Content-Disposition", "inline; filename=\""+key+"\"")
+	} else {
+		w.Header().Set("Content-Disposition", "attachment; filename=\""+key+"\"")
+	}
+
+	// 直接写文件内容到响应体中
+	w.WriteHeader(http.StatusOK) // 确保所有头信息已设置完毕
 	io.Copy(w, obj)
 }
 

@@ -110,6 +110,15 @@ func uploadFileHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		defer file.Close()
 
+		// 使用 mimetype 库解析文件的 MIME 类型
+		mime, err := mimetype.DetectReader(file)
+		if err != nil {
+			http.Error(w, "Error detecting MIME type", http.StatusInternalServerError)
+			return
+		}
+		// 重置文件读取位置
+		file.Seek(0, 0)
+
 		// 使用传递的路径或默认路径
 		filePath := "uploads/"
 		if len(filePaths) > i {
@@ -128,8 +137,9 @@ func uploadFileHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		fmt.Println("mime 123: ", mime.String())
 		// 文件不存在，上传文件
-		_, err = minioClient.PutObject(context.Background(), bucketName, filePath+fileHeader.Filename, file, fileHeader.Size, minio.PutObjectOptions{ContentType: fileHeader.Header.Get("Content-Type")})
+		_, err = minioClient.PutObject(context.Background(), bucketName, filePath+fileHeader.Filename, file, fileHeader.Size, minio.PutObjectOptions{ContentType: mime.String()})
 		if err != nil {
 			http.Error(w, "Error uploading file", http.StatusInternalServerError)
 			return

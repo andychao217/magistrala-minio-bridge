@@ -1,6 +1,7 @@
 package main
 
 import (
+	"compress/gzip"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -175,10 +176,17 @@ func downloadFileHandler(w http.ResponseWriter, r *http.Request) {
 
 	object, err := minioClient.GetObject(context.Background(), bucketName, request.Key, minio.GetObjectOptions{})
 	if err != nil {
-		log.Fatalln(err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 	defer object.Close()
 
+	// 这里可以根据文件类型决定 Content-Type
+	w.Header().Set("Content-Type", "application/octet-stream")                 // 或者根据具体的文件类型设置
+	w.Header().Set("Content-Disposition", "attachment; filename="+request.Key) // 触发下载
+
+	// 读取文件内容并将其写入响应体
+	w.WriteHeader(http.StatusOK) // 确保所有头信息已设置完毕
 	io.Copy(w, object)
 }
 
@@ -491,6 +499,61 @@ func createFolderHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(response)
 }
 
+type gzipResponseWriter struct {
+	io.Writer
+	http.ResponseWriter
+	gzipWriter *gzip.Writer
+}
+
+func (g *gzipResponseWriter) WriteHeader(statusCode int) {
+	// 设置 Gzip 响应头
+	g.ResponseWriter.Header().Set("Content-Encoding", "gzip")
+	g.ResponseWriter.WriteHeader(statusCode)
+}
+
+func (g *gzipResponseWriter) Write(b []byte) (int, error) {
+	// 写入 Gzip 压缩数据
+	if g.gzipWriter != nil {
+		return g.gzipWriter.Write(b)
+	}
+	return g.ResponseWriter.Write(b)
+}
+
+func gzipMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// 忽略上传、下载、预览文件接口
+		if r.URL.Path == "/upload" || r.URL.Path == "/download" || r.URL.Path == "/previewFile" {
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		// 检查是否为 WebSocket 握手请求
+		if r.Header.Get("Upgrade") == "websocket" {
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		// 检查客户端是否支持 Gzip
+		if !strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		// 创建 Gzip Writer
+		gz := gzip.NewWriter(w)
+		defer gz.Close()
+
+		// 使用自定义的 ResponseWriter
+		gw := &gzipResponseWriter{
+			Writer:         gz,
+			ResponseWriter: w,
+			gzipWriter:     gz,
+		}
+
+		next.ServeHTTP(gw, r)
+	})
+}
+
 func main() {
 	initMinio() // 初始化MinIO
 
@@ -511,5 +574,5 @@ func main() {
 	if port == "" {
 		port = "9102" // 默认端口
 	}
-	log.Fatal(http.ListenAndServe(":"+port, router))
+	log.Fatal(http.ListenAndServe(":"+port, gzipMiddleware(router)))
 }

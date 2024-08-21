@@ -80,10 +80,24 @@ func isValidFileType(filename string) bool {
 
 // 上传文件
 func uploadFileHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodOptions {
+		handlePreflight(w, r)
+		return
+	}
+
 	// 设置 CORS 头
 	w.Header().Set("Access-Control-Allow-Origin", "*") // 允许所有来源，或者指定具体的来源
 	w.Header().Set("Access-Control-Allow-Methods", "POST")
 	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+
+	// 验证请求头中是否有 Authorization
+	authHeader := r.Header.Get("Authorization")
+	if authHeader == "" {
+		// 如果没有 Authorization 头，则返回 401 未授权错误
+		http.Error(w, "Authorization header missing", http.StatusUnauthorized)
+		return
+	}
+
 	w.WriteHeader(http.StatusOK)
 
 	if r.Method != http.MethodPost {
@@ -154,10 +168,24 @@ func uploadFileHandler(w http.ResponseWriter, r *http.Request) {
 
 // 下载文件
 func downloadFileHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodOptions {
+		handlePreflight(w, r)
+		return
+	}
+
 	w.Header().Set("Access-Control-Allow-Origin", "*") // 允许所有来源，或者指定具体的来源
 	w.Header().Set("Access-Control-Allow-Methods", "POST")
 	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
 	w.Header().Set("Content-Type", "application/json")
+
+	// 验证请求头中是否有 Authorization
+	authHeader := r.Header.Get("Authorization")
+	if authHeader == "" {
+		// 如果没有 Authorization 头，则返回 401 未授权错误
+		http.Error(w, "Authorization header missing", http.StatusUnauthorized)
+		return
+	}
+
 	w.WriteHeader(http.StatusOK)
 
 	if r.Method != http.MethodPost {
@@ -227,11 +255,25 @@ func DeleteDirectory(ctx context.Context, bucketName, prefix string) error {
 
 // 删除文件
 func deleteFileHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodOptions {
+		handlePreflight(w, r)
+		return
+	}
+
 	// 设置 CORS 头
 	w.Header().Set("Access-Control-Allow-Origin", "*") // 允许所有来源，或者指定具体的来源
 	w.Header().Set("Access-Control-Allow-Methods", "DELETE")
 	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
 	w.Header().Set("Content-Type", "application/json")
+
+	// 验证请求头中是否有 Authorization
+	authHeader := r.Header.Get("Authorization")
+	if authHeader == "" {
+		// 如果没有 Authorization 头，则返回 401 未授权错误
+		http.Error(w, "Authorization header missing", http.StatusUnauthorized)
+		return
+	}
+
 	w.WriteHeader(http.StatusOK)
 
 	if r.Method != http.MethodDelete {
@@ -328,10 +370,23 @@ func buildResourceList(client *minio.Client, bucket, prefix string) []ObjectInfo
 
 // 获取文件资源列表
 func getResourceListHanlder(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodOptions {
+		handlePreflight(w, r)
+		return
+	}
+
 	w.Header().Set("Access-Control-Allow-Origin", "*") // 允许所有来源，或者指定具体的来源
 	w.Header().Set("Access-Control-Allow-Methods", "POST")
 	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
 	w.Header().Set("Content-Type", "application/json")
+
+	// 验证请求头中是否有 Authorization
+	authHeader := r.Header.Get("Authorization")
+	if authHeader == "" {
+		// 如果没有 Authorization 头，则返回 401 未授权错误
+		http.Error(w, "Authorization header missing", http.StatusUnauthorized)
+		return
+	}
 
 	w.WriteHeader(http.StatusOK)
 
@@ -402,9 +457,23 @@ func shouldInline(contentType string) bool {
 
 // 预览音频文件
 func previewFileHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodOptions {
+		handlePreflight(w, r)
+		return
+	}
+
 	w.Header().Set("Access-Control-Allow-Origin", "*") // 允许所有来源，或者指定具体的来源
 	w.Header().Set("Access-Control-Allow-Methods", "GET")
 	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+
+	// 验证请求头中是否有 Authorization
+	authHeader := r.Header.Get("Authorization")
+	if authHeader == "" {
+		// 如果没有 Authorization 头，则返回 401 未授权错误
+		http.Error(w, "Authorization header missing", http.StatusUnauthorized)
+		return
+	}
+
 	w.WriteHeader(http.StatusOK)
 
 	if r.Method != http.MethodGet {
@@ -457,10 +526,24 @@ func previewFileHandler(w http.ResponseWriter, r *http.Request) {
 
 // 新建文件夹
 func createFolderHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodOptions {
+		handlePreflight(w, r)
+		return
+	}
+
 	w.Header().Set("Access-Control-Allow-Origin", "*") // 允许所有来源，或者指定具体的来源
 	w.Header().Set("Access-Control-Allow-Methods", "POST")
 	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
 	w.Header().Set("Content-Type", "application/json")
+
+	// 验证请求头中是否有 Authorization
+	authHeader := r.Header.Get("Authorization")
+	if authHeader == "" {
+		// 如果没有 Authorization 头，则返回 401 未授权错误
+		http.Error(w, "Authorization header missing", http.StatusUnauthorized)
+		return
+	}
+
 	w.WriteHeader(http.StatusOK)
 
 	if r.Method != http.MethodPost {
@@ -578,6 +661,14 @@ func CompressionMiddleware(next http.Handler) http.Handler {
 			next.ServeHTTP(w, r)
 		}
 	})
+}
+
+func handlePreflight(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+	w.Header().Set("Access-Control-Max-Age", "86400") // 缓存 1 天
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func main() {

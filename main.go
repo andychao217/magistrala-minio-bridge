@@ -91,12 +91,12 @@ func uploadFileHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
 
 	// 验证请求头中是否有 Authorization
-	authHeader := r.Header.Get("Authorization")
-	if authHeader == "" {
-		// 如果没有 Authorization 头，则返回 401 未授权错误
-		http.Error(w, "Authorization header missing", http.StatusUnauthorized)
-		return
-	}
+	// authHeader := r.Header.Get("Authorization")
+	// if authHeader == "" {
+	// 	// 如果没有 Authorization 头，则返回 401 未授权错误
+	// 	http.Error(w, "Authorization header missing", http.StatusUnauthorized)
+	// 	return
+	// }
 
 	w.WriteHeader(http.StatusOK)
 
@@ -179,12 +179,12 @@ func downloadFileHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	// 验证请求头中是否有 Authorization
-	authHeader := r.Header.Get("Authorization")
-	if authHeader == "" {
-		// 如果没有 Authorization 头，则返回 401 未授权错误
-		http.Error(w, "Authorization header missing", http.StatusUnauthorized)
-		return
-	}
+	// authHeader := r.Header.Get("Authorization")
+	// if authHeader == "" {
+	// 	// 如果没有 Authorization 头，则返回 401 未授权错误
+	// 	http.Error(w, "Authorization header missing", http.StatusUnauthorized)
+	// 	return
+	// }
 
 	w.WriteHeader(http.StatusOK)
 
@@ -267,12 +267,12 @@ func deleteFileHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	// 验证请求头中是否有 Authorization
-	authHeader := r.Header.Get("Authorization")
-	if authHeader == "" {
-		// 如果没有 Authorization 头，则返回 401 未授权错误
-		http.Error(w, "Authorization header missing", http.StatusUnauthorized)
-		return
-	}
+	// authHeader := r.Header.Get("Authorization")
+	// if authHeader == "" {
+	// 	// 如果没有 Authorization 头，则返回 401 未授权错误
+	// 	http.Error(w, "Authorization header missing", http.StatusUnauthorized)
+	// 	return
+	// }
 
 	w.WriteHeader(http.StatusOK)
 
@@ -381,12 +381,12 @@ func getResourceListHanlder(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	// 验证请求头中是否有 Authorization
-	authHeader := r.Header.Get("Authorization")
-	if authHeader == "" {
-		// 如果没有 Authorization 头，则返回 401 未授权错误
-		http.Error(w, "Authorization header missing", http.StatusUnauthorized)
-		return
-	}
+	// authHeader := r.Header.Get("Authorization")
+	// if authHeader == "" {
+	// 	// 如果没有 Authorization 头，则返回 401 未授权错误
+	// 	http.Error(w, "Authorization header missing", http.StatusUnauthorized)
+	// 	return
+	// }
 
 	w.WriteHeader(http.StatusOK)
 
@@ -467,12 +467,12 @@ func previewFileHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
 
 	// 验证请求头中是否有 Authorization
-	authHeader := r.Header.Get("Authorization")
-	if authHeader == "" {
-		// 如果没有 Authorization 头，则返回 401 未授权错误
-		http.Error(w, "Authorization header missing", http.StatusUnauthorized)
-		return
-	}
+	// authHeader := r.Header.Get("Authorization")
+	// if authHeader == "" {
+	// 	// 如果没有 Authorization 头，则返回 401 未授权错误
+	// 	http.Error(w, "Authorization header missing", http.StatusUnauthorized)
+	// 	return
+	// }
 
 	w.WriteHeader(http.StatusOK)
 
@@ -537,12 +537,12 @@ func createFolderHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	// 验证请求头中是否有 Authorization
-	authHeader := r.Header.Get("Authorization")
-	if authHeader == "" {
-		// 如果没有 Authorization 头，则返回 401 未授权错误
-		http.Error(w, "Authorization header missing", http.StatusUnauthorized)
-		return
-	}
+	// authHeader := r.Header.Get("Authorization")
+	// if authHeader == "" {
+	// 	// 如果没有 Authorization 头，则返回 401 未授权错误
+	// 	http.Error(w, "Authorization header missing", http.StatusUnauthorized)
+	// 	return
+	// }
 
 	w.WriteHeader(http.StatusOK)
 
@@ -665,7 +665,7 @@ func CompressionMiddleware(next http.Handler) http.Handler {
 
 func handlePreflight(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS, PUT, DELETE")
 	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
 	w.Header().Set("Access-Control-Max-Age", "86400") // 缓存 1 天
 	w.WriteHeader(http.StatusNoContent)

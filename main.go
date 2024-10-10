@@ -28,6 +28,7 @@ import (
 
 var minioClient *minio.Client // MinIO 客户端
 var bucketName string         // 存储桶名称
+var shanghaiLocation *time.Location
 
 // 初始化 MinIO 客户端
 func initMinio() {
@@ -68,6 +69,12 @@ func initMinio() {
 		} else {
 			log.Fatalln(err)
 		}
+	}
+
+	// 加载时区
+	shanghaiLocation, err = time.LoadLocation("Asia/Shanghai")
+	if err != nil {
+		log.Fatalf("无法加载时区 Asia/Shanghai: %v", err)
 	}
 }
 
@@ -716,7 +723,16 @@ func appendFirmwareInfo(newInfo FirmwareInfo) error {
 		return fmt.Errorf("桶 %s 不存在", bucketName)
 	}
 
-	newInfo.UploadTime = time.Now().Format("2006-01-02 15:04:05")
+	currentTime := time.Now()
+
+	// 使用预加载的时区
+	if shanghaiLocation == nil {
+		log.Println("shanghaiLocation 为 nil，使用 UTC 时区")
+		shanghaiLocation = time.UTC
+	}
+
+	localizedTime := currentTime.In(shanghaiLocation)
+	newInfo.UploadTime = localizedTime.Format("2006-01-02 15:04:05")
 	newInfo.ID = strconv.Itoa(int(time.Now().Unix()))
 	newInfo.URL = fmt.Sprintf("oss://%s/firmware/%s/%s_%s.img", bucketName, newInfo.ProductName, newInfo.ProductName, newInfo.Version)
 
@@ -840,7 +856,7 @@ func uploadFirmwareHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := r.ParseMultipartForm(50 << 20) // 限制上传文件的大小为50MB
+	err := r.ParseMultipartForm(100 << 20) // 限制上传文件的大小为100MB
 	if err != nil {
 		http.Error(w, "Error parsing form data", http.StatusBadRequest)
 		return
@@ -1083,7 +1099,7 @@ func getFirmwareList(productName string) ([]FirmwareInfo, error) {
 	if err != nil {
 		// 如果文件不存在，返回 nil
 		if minio.ToErrorResponse(err).Code == "NoSuchKey" {
-			return nil, nil
+			return []FirmwareInfo{}, nil
 		}
 		// 其他错误
 		return nil, fmt.Errorf("获取对象信息失败: %v", err)
@@ -1097,9 +1113,21 @@ func getFirmwareList(productName string) ([]FirmwareInfo, error) {
 	defer object.Close()
 
 	var firmwareList []FirmwareInfo
-	err = json.NewDecoder(object).Decode(&firmwareList)
+	decoder := json.NewDecoder(object)
+	decoder.DisallowUnknownFields() // 可选：防止存在未知字段时解析失败
+
+	err = decoder.Decode(&firmwareList)
 	if err != nil {
+		// 如果 JSON 内容为空，返回一个空的切片
+		if err == fmt.Errorf("EOF") {
+			return []FirmwareInfo{}, nil
+		}
 		return nil, fmt.Errorf("解析 JSON 文件失败: %v", err)
+	}
+
+	// 确保返回的切片不为 nil
+	if firmwareList == nil {
+		firmwareList = []FirmwareInfo{}
 	}
 
 	return firmwareList, nil

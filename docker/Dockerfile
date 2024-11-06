@@ -26,10 +26,10 @@ RUN if apk add --no-cache upx; then \
         echo "UPX 已通过 apk 安装"; \
     else \
         echo "通过 apk 安装 UPX 失败，尝试手动安装"; \
-        wget https://github.com/upx/upx/releases/download/v4.0.4/upx-4.0.4-amd64-linux.tar.xz && \
-        tar -xf upx-4.0.4-amd64-linux.tar.xz && \
-        mv upx-4.0.4-amd64-linux/upx /usr/local/bin/ && \
-        rm -rf upx-4.0.4-amd64-linux upx-4.0.4-amd64-linux.tar.xz; \
+        wget https://github.com/upx/upx/releases/download/v4.2.4/upx-4.2.4-amd64_linux.tar.xz && \
+        tar -xf upx-4.2.4-amd64_linux.tar.xz && \
+        mv upx-4.2.4-amd64_linux/upx /usr/local/bin/ && \
+        rm -rf upx-4.2.4-amd64_linux upx-4.2.4-amd64_linux.tar.xz; \
     fi
 
 # 构建 Go 应用程序并压缩可执行文件

@@ -15,10 +15,11 @@ WORKDIR /app
 # 复制当前目录内容到工作目录
 COPY . .
 
-# 更新 apk 源并安装 make
+# 更新 apk 源并安装 make 和 util-linux（包括 lsblk）
 RUN echo http://mirrors.aliyun.com/alpine/v3.19/main/ > /etc/apk/repositories && \
     echo http://mirrors.aliyun.com/alpine/v3.19/community/ >> /etc/apk/repositories && \
-    apk update && apk upgrade && apk add --no-cache make
+    apk update && apk upgrade && \
+    apk add --no-cache make util-linux
 
 # 安装 UPX（如果可用），否则手动下载并安装
 RUN if apk add --no-cache upx; then \
@@ -42,14 +43,17 @@ FROM alpine:3.19
 # 设置默认时区（可选）
 ENV TZ=Asia/Shanghai
 
-# 安装 tzdata
-RUN apk add --no-cache tzdata
+# 安装 tzdata 和其他必要的包，包括 util-linux
+RUN apk add --no-cache tzdata udev e2fsprogs bash dbus libnotify util-linux
 
 # 从 builder 阶段复制压缩后的可执行文件
 COPY --from=builder /exe /exe
 
 # 从 builder 阶段复制静态文件
 COPY --from=builder /app/static /static
+
+# 复制配置文件
+COPY --from=builder /app/config.ini /config.ini
 
 # 设置工作目录
 WORKDIR /
